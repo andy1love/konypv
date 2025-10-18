@@ -1,9 +1,9 @@
 {
   "python_exec": "python3",
 
-  "MEDIA_POOL_ROOT": "/Volumes/2TBSSD/LaCie/MEDIA_POOL",
-  "PROXY_POOL_ROOT": "/Volumes/2TBSSD/LaCie/PROXY_POOL",
-  "DEFAULT_DAILIES_ROLL": "/Users/andy/Desktop/sdcard/clip",
+  "MEDIA_POOL_ROOT": "/Volumes/LaCie/MEDIA_POOL",
+  "PROXY_POOL_ROOT": "/Volumes/LaCie/PROXY_POOL",
+  "DEFAULT_DAILIES_ROLL": "/Volumes/Untitled/PRIVATE/M4ROOT/CLIP",
 
   "resolve_api_paths": [
     "/Library/Application Support/Blackmagic Design/DaVinci Resolve/Developer/Scripting/Modules",
@@ -23,19 +23,19 @@
   },
 
   "scripts": {
-    "ingest": "/Volumes/2TBSSD/LaCie/_scripts/sdcard_to_lacie.py",
-    "import": "/Volumes/2TBSSD/LaCie/_scripts/auto_import_media_to_res.py"
+    "ingest": "/Volumes/LaCie/_scripts/sdcard_to_lacie.py",
+    "import": "/Volumes/LaCie/_scripts/auto_import_media_to_res.py"
   },
   
   "user_dest_roots": {
     "ANDY": "/Volumes/4TBSSD/DORM_LaCie",
-    "AIZAWA": "/Volumes/AIZAWA_DRIVE",
+    "AIZAWA": "/Volumes/prtb_andy",
     "FURUSAWA": "/Volumes/FURU_DRIVE",
     "GOYA": "/Volumes/GOYA_DRIVE",
     "IDENO": "/Volumes/IDENO_DRIVE",
     "ISHIHARA": "/Volumes/ISHIHARA_DRIVE",
     "SHIBUTA": "/Volumes/SHIBUTA_DRIVE",
-    "TAKAYAMA_YOKOI": "/Volumes/TAKAYAMA_DRIVE"
+    "TAKAYAMA_YOKOI": "/Volumes/TAKAYAMA_YOKOI_DRIVE"
   },
 
   "excludes": [
