@@ -1,0 +1,22 @@
+{
+  "python_exec": "python3",
+
+  "MEDIA_POOL_ROOT": "/Volumes/LaCie/MEDIA_POOL",
+  "DEFAULT_DAILIES_ROLL": "/Volumes/Untitled/PRIVATE/M4ROOT/CLIP",
+
+  "user_keymap": {
+    "m": "AIZAWA",
+    "a": "ANDY",
+    "f": "FURUSAWA",
+    "g": "GOYA",
+    "k": "IDENO",
+    "i": "ISHIHARA",
+    "s": "SHIBUTA",
+    "t": "TAKAYAMA_YOKOI"
+  },
+
+  "scripts": {
+    "ingest": "/Volumes/LaCie/_scripts/sdcard_to_lacie.py",
+    "import": "/Volumes/LaCie/_scripts/auto_import_media_to_res.py"
+  }
+}

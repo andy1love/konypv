@@ -1,0 +1,68 @@
+{
+  "python_exec": "python3",
+
+  "MEDIA_POOL_ROOT": "/Volumes/LaCie/MEDIA_POOL",
+  "PROXY_POOL_ROOT": "/Volumes/LaCie/PROXY_POOL",
+  "DEFAULT_DAILIES_ROLL": "/Volumes/Untitled/PRIVATE/M4ROOT/CLIP",
+
+  "resolve_api_paths": [
+    "/Library/Application Support/Blackmagic Design/DaVinci Resolve/Developer/Scripting/Modules",
+    "/Applications/DaVinci Resolve/DaVinci Resolve.app/Contents/Resources/Developer/Scripting/Modules",
+    "~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Developer/Scripting/Modules"
+  ],
+
+  "user_keymap": {
+    "m": "AIZAWA",
+    "a": "ANDY",
+    "f": "FURUSAWA",
+    "g": "GOYA",
+    "k": "IDENO",
+    "i": "ISHIHARA",
+    "s": "SHIBUTA",
+    "t": "TAKAYAMA_YOKOI"
+  },
+
+  "scripts": {
+    "ingest": "/Volumes/LaCie/_scripts/sdcard_to_lacie.py",
+    "import": "/Volumes/LaCie/_scripts/auto_import_media_to_res.py"
+  },
+  
+  "user_dest_roots": {
+    "ANDY": "/Volumes/4TBSSD/DORM_LaCie",
+    "AIZAWA": "/Volumes/prtb_andy",
+    "FURUSAWA": "/Volumes/FURU_DRIVE",
+    "GOYA": "/Volumes/GOYA_DRIVE",
+    "IDENO": "/Volumes/IDENO_DRIVE",
+    "ISHIHARA": "/Volumes/ISHIHARA_DRIVE",
+    "SHIBUTA": "/Volumes/SHIBUTA_DRIVE",
+    "TAKAYAMA_YOKOI": "/Volumes/TAKAYAMA_YOKOI_DRIVE"
+  },
+
+  "excludes": [
+    "_reports/",
+    ".DS_Store",
+    "._*",
+    ".Spotlight-V100",
+    ".Trashes",
+    ".fseventsd"
+  ],
+
+  "backsync_globs": ["*.mp4", "*.MP4"],
+
+  "rsync": {
+    "flags": ["-r", "--progress"]
+  },
+  
+  "file_request_urls": {
+    "ANDY": "https://www.dropbox.com/request/Ks41xhcgyUtc1y9a8xLI",
+    "AIZAWA": "https://www.dropbox.com/request/cFvmzXSAlk6gVvGc66TF",
+    "FURUSAWA": "https://www.dropbox.com/request/j9oabucYpSYC6iW2jqQq",
+    "GOYA": "https://www.dropbox.com/request/8A8uUIxwRTUpY1dJ1mwF",
+    "IDENO": "https://www.dropbox.com/request/HDHP0gwLVnDrlJJSoz1W",
+    "ISHIHARA": "https://www.dropbox.com/request/rbUkWyv0TehUHe6dZV07",
+    "SHIBUTA": "https://www.dropbox.com/request/j1IwagPluE5ox5MfQ85F",
+    "TAKAYAMA_YOKOI": "https://www.dropbox.com/request/vgIUWgccSNa5F54aNDXj"
+}
+  
+  
+}
