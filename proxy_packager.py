@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import json
 import os
 import re
@@ -110,9 +111,117 @@ def open_safari(url: str):
     except Exception:
         subprocess.run(["open", url], check=False)
 
+def folder_already_sent(sent_dir: Path, folder_name: str) -> bool:
+    """
+    Check if a folder has already been sent by looking in all _sent buckets.
+    Returns True if the folder exists in any bucket.
+    """
+    if not sent_dir.exists():
+        return False
+    
+    for bucket in sent_dir.iterdir():
+        if not bucket.is_dir():
+            continue
+        # Check if this folder exists in this bucket
+        if (bucket / folder_name).exists():
+            return True
+    return False
+
+def choose_mode() -> str:
+    """Interactive mode selection."""
+    print("\nSelect transfer mode:")
+    print("  [1] hardlink - Create hard links (fast, shares disk space)")
+    print("  [2] cp - Copy files (default, creates independent copies)")
+    print("  [3] rsync - Use rsync (preserves permissions, efficient)")
+    choice = input("Enter choice (1-3, default is 2): ").strip()
+    if choice == "":
+        return "cp"
+    mode_map = {"1": "hardlink", "2": "cp", "3": "rsync"}
+    if choice in mode_map:
+        return mode_map[choice]
+    die(f"Invalid choice '{choice}'. Must be 1, 2, or 3.")
+
+def hardlink_directory(src: Path, dst: Path) -> bool:
+    """Recursively hardlink files from src to dst (directories are created, files are hardlinked)."""
+    try:
+        # Create destination directory
+        dst.mkdir(parents=True, exist_ok=True)
+        
+        # Walk through source directory
+        for root, dirs, files in os.walk(src):
+            # Create relative path from source
+            rel_path = Path(root).relative_to(src)
+            dst_subdir = dst / rel_path
+            dst_subdir.mkdir(parents=True, exist_ok=True)
+            
+            # Hardlink all files
+            for file in files:
+                src_file = Path(root) / file
+                dst_file = dst_subdir / file
+                try:
+                    if dst_file.exists():
+                        dst_file.unlink()  # Remove existing file if any
+                    os.link(str(src_file), str(dst_file))
+                except OSError as e:
+                    # If hardlink fails (e.g., cross-filesystem), fall back to copy
+                    shutil.copy2(str(src_file), str(dst_file))
+        return True
+    except Exception as e:
+        print(f"[WARN] Hardlink operation failed: {e}")
+        return False
+
+def copy_directory(src: Path, dst: Path) -> bool:
+    """Copy directory using shutil.copytree."""
+    try:
+        shutil.copytree(str(src), str(dst), dirs_exist_ok=True)
+        return True
+    except Exception as e:
+        print(f"[WARN] Copy operation failed: {e}")
+        return False
+
+def rsync_directory(src: Path, dst: Path) -> bool:
+    """Copy directory using rsync."""
+    try:
+        # Ensure destination parent exists
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        # Use rsync with archive mode (preserves permissions, timestamps, etc.)
+        # Copy src/ contents into dst (dst will be created if it doesn't exist)
+        result = subprocess.run(
+            ["rsync", "-a", f"{src}/", f"{dst}/"],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        if result.returncode != 0:
+            print(f"[WARN] rsync failed: {result.stderr}")
+            return False
+        return True
+    except FileNotFoundError:
+        print("[WARN] rsync not found. Falling back to copy.")
+        return copy_directory(src, dst)
+    except Exception as e:
+        print(f"[WARN] rsync operation failed: {e}")
+        return False
+
 # ------------------------ Main flow ------------------------
 
 def main():
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="Package proxy files for sending")
+    parser.add_argument(
+        "--mode",
+        choices=["hardlink", "cp", "rsync"],
+        default=None,
+        help="Transfer mode: hardlink, cp (default), or rsync. If not provided, interactive mode will prompt."
+    )
+    args = parser.parse_args()
+    
+    # Determine mode: use --mode if provided, otherwise interactive selection
+    if args.mode:
+        mode = args.mode
+    else:
+        mode = choose_mode()
+    
     cfg = load_config()
 
     PROXY_POOL_ROOT = Path(cfg["PROXY_POOL_ROOT"])
@@ -127,12 +236,27 @@ def main():
     sent_dir = base_dir / "_sent"
     ensure_dir(sent_dir)  # create if missing
 
-    # 3) Find candidate directories to send (exclude _reports, _sent, hidden)
+    # 3) Find candidate directories to send (exclude _reports, _sent, hidden, and already-sent)
     exclude_names = ["_reports", "_sent"]
-    candidates = list_top_level_dirs(base_dir, exclude_names=exclude_names)
+    all_candidates = list_top_level_dirs(base_dir, exclude_names=exclude_names)
+
+    # Filter out folders that have already been sent
+    candidates = []
+    already_sent = []
+    for candidate in all_candidates:
+        if folder_already_sent(sent_dir, candidate.name):
+            already_sent.append(candidate.name)
+        else:
+            candidates.append(candidate)
+
+    if already_sent:
+        print(f"\n[INFO] Skipping already-sent folders: {', '.join(already_sent)}")
 
     if not candidates:
-        print("No folders to send. (Nothing found besides _reports/_sent.)")
+        if already_sent:
+            print("All folders have already been sent. Nothing new to package.")
+        else:
+            print("No folders to send. (Nothing found besides _reports/_sent.)")
         open_finder(sent_dir)
         url = file_request_urls.get(name)
         if url:
@@ -158,23 +282,40 @@ def main():
         print("Cancelled (unrecognized response). No changes made.")
         sys.exit(0)
 
-    # 5) Create bucket and link candidates into it
+    # 5) Create bucket and transfer candidates into it using selected mode
     ensure_dir(bucket_path)
-    linked = []
+    transferred = []
+    
+    # Select the appropriate transfer function
+    transfer_funcs = {
+        "hardlink": hardlink_directory,
+        "cp": copy_directory,
+        "rsync": rsync_directory
+    }
+    transfer_func = transfer_funcs[mode]
+    
+    action_verb = {
+        "hardlink": "Linked",
+        "cp": "Copied",
+        "rsync": "Synced"
+    }[mode]
+    
     for src in candidates:
         dst = unique_destination(bucket_path, src.name)
         try:
-            # Create hard link instead of moving
-            os.link(str(src), str(dst))
-            linked.append((src.name, dst))
-            print(f"Linked: {src.name} -> {dst.relative_to(sent_dir)}")
+            success = transfer_func(src, dst)
+            if success:
+                transferred.append((src.name, dst))
+                print(f"{action_verb}: {src.name} -> {dst.relative_to(sent_dir)}")
+            else:
+                print(f"[WARN] Failed to {mode} {src} -> {dst}")
         except Exception as e:
-            print(f"[WARN] Failed to create hard link {src} -> {dst}: {e}")
+            print(f"[WARN] Failed to {mode} {src} -> {dst}: {e}")
 
-    if not linked:
-        print("[WARN] No folders were linked (unexpected).")
+    if not transferred:
+        print(f"[WARN] No folders were transferred (unexpected).")
     else:
-        print(f"\n✅ Linked {len(linked)} folder(s) into: {bucket_path}")
+        print(f"\n✅ {action_verb} {len(transferred)} folder(s) into: {bucket_path}")
 
     # 6) Open Finder at _sent and Safari at this user's File Request URL
     #open_finder(bucket_path)

@@ -26,7 +26,7 @@ import csv
 import json
 import subprocess
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 
 VIDEO_EXTS = {".mp4"}  # extend if needed: {".mp4", ".mov", ...}
@@ -77,26 +77,32 @@ def newer_than(src: Path, dst: Path) -> bool:
     except FileNotFoundError:
         return True
 
-def find_existing_proxy(src: Path, dst_root: Path, src_root: Path) -> Path:
+def find_existing_proxy(src: Path, dst_root: Path, src_root: Path) -> Optional[Path]:
     """
     Find existing proxy file in either original location or _sent directories.
+    Since proxy_packager.py creates hard links at the folder level, we need to
+    check both the original location and all _sent buckets.
     Returns the path to the existing proxy, or None if not found.
     """
     rel = src.relative_to(src_root)
     original_proxy = dst_root / rel.parent / src.name
     
-    # Check original location first
+    # Check original location first (fast path)
     if original_proxy.exists():
         return original_proxy
     
     # Check _sent directory recursively
+    # Since proxy_packager.py hard-links entire folders, the relative path
+    # structure should be preserved within each bucket
     sent_dir = dst_root / "_sent"
     if sent_dir.exists():
         for sent_bucket in sent_dir.iterdir():
-            if sent_bucket.is_dir():
-                sent_proxy = sent_bucket / rel.parent / src.name
-                if sent_proxy.exists():
-                    return sent_proxy
+            if not sent_bucket.is_dir():
+                continue
+            # Construct the path within this bucket
+            sent_proxy = sent_bucket / rel.parent / src.name
+            if sent_proxy.exists():
+                return sent_proxy
     
     return None
 
