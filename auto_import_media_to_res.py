@@ -73,9 +73,32 @@ try:
 except Exception as e:
     raise SystemExit(f"Failed to load config file {CFG_PATH}: {e}")
 
+def pick_user(keymap: dict) -> str:
+    """Prompt user to select from keymap, similar to workflow_launcher.py"""
+    print("Select user:")
+    for letter in sorted(keymap.keys()):
+        print(f"  [{letter}] {keymap[letter]}")
+    while True:
+        choice = input("Enter letter (or q to quit): ").strip().lower()
+        if choice == "q":
+            raise SystemExit("Aborted by user.")
+        if choice in keymap:
+            return keymap[choice]  # returns NAME (e.g., "ANDY")
+        print("Invalid choice. Try again.")
+
 NAME = os.getenv("NAME")
 if not NAME:
-    raise SystemExit("NAME environment variable not set. This script must be run via workflow_launcher.py")
+    # Check if we're in interactive mode (no MEDIA provided via args/env)
+    # If interactive, prompt for user selection
+    keymap = CFG.get("user_keymap", {})
+    if not keymap:
+        raise SystemExit("NAME environment variable not set and 'user_keymap' not found in config.json. This script must be run via workflow_launcher.py or with NAME set.")
+    
+    # Only prompt if we're in interactive mode (no MEDIA was provided)
+    if not args and not os.getenv("MEDIA"):
+        NAME = pick_user(keymap)
+    else:
+        raise SystemExit("NAME environment variable not set. This script must be run via workflow_launcher.py")
 
 RESOLVE_PROJECT = os.getenv("RESOLVE_PROJECT") or NAME
 
