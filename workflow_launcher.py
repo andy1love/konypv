@@ -56,6 +56,20 @@ def confirm(prompt: str, default_yes: bool = True) -> bool:
     resp = input(prompt + (" [Y/n]: " if default_yes else " [y/N]: ")).strip().lower()
     return default_yes if resp == "" else resp in ("y", "yes")
 
+def normalize_dragged_path(p: str) -> str:
+    """Handle paths dragged into terminal that may have escaped spaces."""
+    p = p.strip()
+    # Try as-is first
+    if Path(p).exists():
+        return p
+    # If path starts with "/" and contains spaces (possibly escaped), try unescaping
+    if p.startswith("/") and (" " in p or "\\ " in p):
+        # Replace backslash-space with regular space
+        unescaped = p.replace("\\ ", " ")
+        if Path(unescaped).exists():
+            return unescaped
+    return p
+
 def main():
     # 1) Load config (allow custom path as argv[1], or use default in same directory)
     if len(sys.argv) > 1:
@@ -136,6 +150,7 @@ def main():
             manual = input("Drag in the folder path you want to import: ").strip()
             if not manual:
                 die("No folder provided.")
+            manual = normalize_dragged_path(manual)
             latest = Path(manual)
             if not latest.exists():
                 die(f"Folder not found: {latest}")
@@ -144,6 +159,7 @@ def main():
         manual = input("Enter absolute folder path to import (or press Enter to abort): ").strip()
         if not manual:
             die("Aborted (no folder to import).")
+        manual = normalize_dragged_path(manual)
         latest = Path(manual)
         if not latest.exists():
             die(f"Folder not found: {latest}")

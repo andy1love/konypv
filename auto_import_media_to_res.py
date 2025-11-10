@@ -11,10 +11,26 @@ import os, sys, pathlib, datetime, json, re
 from pathlib import Path
 
 # --------- Arg / Env parsing ---------
+def normalize_dragged_path(p: str) -> str:
+    """Handle paths dragged into terminal that may have escaped spaces."""
+    p = p.strip()
+    # Try as-is first
+    if pathlib.Path(p).exists():
+        return p
+    # If path starts with "/" and contains spaces (possibly escaped), try unescaping
+    if p.startswith("/") and (" " in p or "\\ " in p):
+        # Replace backslash-space with regular space
+        unescaped = p.replace("\\ ", " ")
+        if pathlib.Path(unescaped).exists():
+            return unescaped
+    return p
+
 args = [a for a in sys.argv[1:] if a != "--nonrecursive"]
 RECURSIVE = "--nonrecursive" not in sys.argv
 
 MEDIA = args[0] if args else os.getenv("MEDIA")
+if MEDIA:
+    MEDIA = normalize_dragged_path(MEDIA)
 
 def prompt_media_path() -> str:
     print("No MEDIA path provided.")
@@ -22,8 +38,9 @@ def prompt_media_path() -> str:
         p = input("Drag in the folder that contains the MEDIA you just copied to LACIE (or press Enter to abort): ").strip()
         if not p:
             raise SystemExit("Aborted by user (no MEDIA path).")
-        if pathlib.Path(p).exists():
-            return p
+        normalized = normalize_dragged_path(p)
+        if pathlib.Path(normalized).exists():
+            return normalized
         print(f"Path not found: {p}")
 
 if not MEDIA:
