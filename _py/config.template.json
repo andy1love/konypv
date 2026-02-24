@@ -1,6 +1,7 @@
 {
   "python_exec": "python3",
 
+  "repo_root": "/path/to/your/_scripts",
   "MEDIA_POOL_ROOT": "/Volumes/LaCie/MEDIA_POOL",
   "PROXY_POOL_ROOT": "/Volumes/LaCie/PROXY_POOL",
   "DEFAULT_DAILIES_ROLL": "/Volumes/Untitled/PRIVATE/M4ROOT/CLIP",
@@ -53,7 +54,6 @@
     "flags": ["-r", "--progress"]
   },
   
-  "repo_root": "/path/to/your/_scripts",
 
   "file_request_urls": {
     "ANDY": "https://www.dropbox.com/request/Ks41xhcgyUtc1y9a8xLI",
