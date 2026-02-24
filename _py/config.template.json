@@ -53,6 +53,8 @@
     "flags": ["-r", "--progress"]
   },
   
+  "repo_root": "/path/to/your/_scripts",
+
   "file_request_urls": {
     "ANDY": "https://www.dropbox.com/request/Ks41xhcgyUtc1y9a8xLI",
     "AIZAWA": "https://www.dropbox.com/request/cFvmzXSAlk6gVvGc66TF",
