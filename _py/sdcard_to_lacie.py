@@ -23,26 +23,15 @@ import os
 import re
 import sys
 import csv
-import json
 import shutil
 import datetime
 from pathlib import Path
 from typing import Dict, Tuple, List, Optional
 
-# ---------- Config / Environment ----------
-def load_cfg() -> dict:
-    cfg_path = os.getenv("CONFIG_PATH")
-    if not cfg_path:
-        # Use config.json in the same directory as this script
-        script_dir = Path(__file__).parent
-        cfg_path = str(script_dir / "config.json")
-    
-    if Path(cfg_path).exists():
-        with open(cfg_path, "r") as f:
-            return json.load(f)
-    return {}
+from config_loader import load_config
 
-CFG = load_cfg()
+# ---------- Config / Environment ----------
+CFG = load_config()
 
 NAME = os.getenv("NAME")
 if not NAME:

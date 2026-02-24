@@ -1,9 +1,8 @@
 {
   "python_exec": "python3",
 
-  "repo_root": "/path/to/your/_scripts",
-  "MEDIA_POOL_ROOT": "/Volumes/LaCie/MEDIA_POOL",
-  "PROXY_POOL_ROOT": "/Volumes/LaCie/PROXY_POOL",
+  "ROOT": "/Volumes/LaCie",
+
   "DEFAULT_DAILIES_ROLL": "/Volumes/Untitled/PRIVATE/M4ROOT/CLIP",
 
   "resolve_api_paths": [
@@ -23,18 +22,13 @@
     "t": "TAKAYAMA_YOKOI"
   },
 
-  "scripts": {
-    "ingest": "/Volumes/LaCie/_scripts/sdcard_to_lacie.py",
-    "import": "/Volumes/LaCie/_scripts/auto_import_media_to_res.py"
-  },
-  
   "user_dest_roots": {
     "ANDY": "/Volumes/4TBSSD/DORM_LaCie",
-    "AIZAWA": "/Volumes/prtb_andy",
+    "AIZAWA": "/Volumes/prtb_miko",
     "FURUSAWA": "/Volumes/FURU_DRIVE",
     "GOYA": "/Volumes/GOYA_DRIVE",
     "IDENO": "/Volumes/IDENO_DRIVE",
-    "ISHIHARA": "/Volumes/ISHIHARA_DRIVE",
+    "ISHIHARA": "/Volumes/prtb_coco",
     "SHIBUTA": "/Volumes/SHIBUTA_DRIVE",
     "TAKAYAMA_YOKOI": "/Volumes/TAKAYAMA_YOKOI_DRIVE"
   },

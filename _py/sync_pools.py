@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import json
 import os
 import re
 import sys
@@ -8,6 +7,8 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple, Optional
+
+from config_loader import load_config
 
 # ------------------------ Utils ------------------------
 
@@ -124,8 +125,7 @@ def rsync_version_tuple(rsync_bin: str) -> Tuple[int, int]:
 
 class Config:
     def __init__(self, path: Path):
-        with path.open("r", encoding="utf-8") as f:
-            self.data = json.load(f)
+        self.data = load_config(path)
 
         for key in ["MEDIA_POOL_ROOT", "PROXY_POOL_ROOT", "user_keymap", "user_dest_roots"]:
             if key not in self.data:

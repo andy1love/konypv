@@ -23,11 +23,12 @@ Optional env:
 import os
 import sys
 import csv
-import json
 import subprocess
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
+
+from config_loader import load_config
 
 VIDEO_EXTS = {".mp4"}  # extend if needed: {".mp4", ".mov", ...}
 
@@ -35,19 +36,6 @@ VIDEO_EXTS = {".mp4"}  # extend if needed: {".mp4", ".mov", ...}
 def die(msg: str, code: int = 1):
     print(f"ERROR: {msg}", file=sys.stderr)
     sys.exit(code)
-
-def load_cfg() -> dict:
-    cfg_path = os.getenv("CONFIG_PATH")
-    if not cfg_path:
-        # Use config.json in the same directory as this script
-        script_dir = Path(__file__).parent
-        cfg_path = str(script_dir / "config.json")
-    
-    cfg_file = Path(cfg_path)
-    if not cfg_file.exists():
-        die(f"Config not found: {cfg_file}")
-    with cfg_file.open() as f:
-        return json.load(f)
 
 def pick_user(keymap: dict) -> str:
     print("Select user:")
@@ -274,7 +262,7 @@ def run_ffmpeg(input_path: Path, output_path: Path, task_idx: int = 0, total_tas
 
 # ---------------- Main ----------------
 def main():
-    cfg = load_cfg()
+    cfg = load_config()
 
     # Fail fast if required config keys are missing
     if "MEDIA_POOL_ROOT" not in cfg:

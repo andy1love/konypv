@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import json
 import os
 import re
 import shutil
@@ -10,19 +9,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+from config_loader import load_config
+
 # ------------------------ Helpers ------------------------
 
 def die(msg: str, code: int = 1):
     print(f"[ERROR] {msg}", file=sys.stderr)
     sys.exit(code)
-
-def load_config() -> dict:
-    script_dir = Path(__file__).resolve().parent
-    config_path = script_dir / "config.json"
-    if not config_path.exists():
-        die(f"Config file not found: {config_path}")
-    with config_path.open("r", encoding="utf-8") as f:
-        return json.load(f)
 
 def choose_user(user_keymap: dict) -> str:
     print("Select user:")

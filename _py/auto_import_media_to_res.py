@@ -7,8 +7,10 @@
 #   # or (interactive):
 #   python3 auto_import_media_to_res.py
 
-import os, sys, pathlib, datetime, json, re
+import os, sys, pathlib, datetime, re
 from pathlib import Path
+
+from config_loader import load_config
 
 # --------- Arg / Env parsing ---------
 def normalize_dragged_path(p: str) -> str:
@@ -72,22 +74,7 @@ if not m:
 BASE_BIN = f"{m.group('ymd')}_{m.group('seq')}" if m else BIN
 SUFFIX   = m.group("sfx") if m else None
 
-# Optional: read config (for logging only)
-CFG_PATH = os.getenv("CONFIG_PATH")
-if not CFG_PATH:
-    # Use config.json in the same directory as this script
-    script_dir = Path(__file__).parent
-    CFG_PATH = str(script_dir / "config.json")
-
-CFG = {}
-if not os.path.exists(CFG_PATH):
-    raise SystemExit(f"Config file not found: {CFG_PATH}")
-
-try:
-    with open(CFG_PATH, "r") as f:
-        CFG = json.load(f)
-except Exception as e:
-    raise SystemExit(f"Failed to load config file {CFG_PATH}: {e}")
+CFG = load_config()
 
 def pick_user(keymap: dict) -> str:
     """Prompt user to select from keymap, similar to workflow_launcher.py"""

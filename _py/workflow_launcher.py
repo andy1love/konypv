@@ -9,22 +9,17 @@ Suffix-aware newest bin detection: matches YYYYMMDD_## and YYYYMMDD_##_<suffix>.
 import os
 import re
 import sys
-import json
 import subprocess
 from pathlib import Path
 from typing import List, Tuple, Optional
+
+from config_loader import load_config
 
 # suffix-aware: 20250906_04 or 20250906_04_ya
 BIN_PATTERN = re.compile(r"^(?P<ymd>\d{8})_(?P<seq>\d{2})(?:_.*)?$")
 
 def die(msg: str, code: int = 1):
     print(f"ERROR: {msg}", file=sys.stderr); sys.exit(code)
-
-def load_config(cfg_path: Path) -> dict:
-    if not cfg_path.exists():
-        die(f"Config file not found: {cfg_path}")
-    with cfg_path.open() as f:
-        return json.load(f)
 
 def pick_user(keymap: dict) -> str:
     print("Select user:")
