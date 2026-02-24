@@ -69,6 +69,8 @@ data/output/*
 notes/*
 !notes/.gitkeep
 
+_py/config.json
+
 # Sensitive data (if any)
 # Uncomment if you have sensitive files
 # *.key
