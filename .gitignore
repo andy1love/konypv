@@ -61,6 +61,14 @@ Temporary Items
 *.tmp
 *.temp
 
+# Output files (keep directory structure via .gitkeep)
+data/output/*
+!data/output/.gitkeep
+
+# Private local notes (keep directory structure via .gitkeep)
+notes/*
+!notes/.gitkeep
+
 # Sensitive data (if any)
 # Uncomment if you have sensitive files
 # *.key

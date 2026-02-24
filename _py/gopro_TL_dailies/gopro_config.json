@@ -1,0 +1,36 @@
+{
+  "python_exec": "python3",
+  "GP_JPGSEQ_POOL_ROOT": "/Volumes/4TBSSD/GP_JPGSEQ_POOL",
+  "GP_PROXY_POOL": "/Volumes/4TBSSD/GP_PROXY_POOL",
+  "GP_WR_POOL": "/Volumes/4TBSSD/GP_WR_POOL",
+  "GP_DAILIES_ROLL": [
+    "/Volumes/Untitled/DCIM",
+    "/Volumes/NO NAME/DCIM"
+  ],
+  "scripts": {
+    "ingest": "GPsdcard_to_HDD.py",
+    "take_maker": "take_maker.py",
+    "wr_maker": "GP_WR_maker.py",
+    "proxy_maker": "GP_proxy_maker.py"
+  },
+  "camera_options": [
+    "HERO4",
+    "HERO6"
+  ],
+  "camera_type": "GoPro Hero 12",
+  "proxy": {
+    "width": 1920,
+    "fps": 24,
+    "crf": 23,
+    "preset": "fast"
+  },
+  "wr": {
+    "fps": 24,
+    "enabled": false
+  },
+  "excludes": [
+    "_reports/",
+    ".DS_Store",
+    "._*"
+  ]
+}
