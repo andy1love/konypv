@@ -119,6 +119,17 @@ reason as above). After that, double-clicking works permanently.
 This will pull the latest changes from GitHub and automatically apply
 color tags in Finder to any scripts that were updated.
 
+> **After a major repo refactor** (e.g. folder structure changes, `git_pull.command`
+> itself was updated), double-clicking `git_pull.command` may fail because the old
+> version of the script is what runs. In that case, do a one-time manual pull in
+> Terminal:
+>
+> ```bash
+> cd /Volumes/LaCie/_scripts && git pull origin main
+> ```
+>
+> After that, `git_pull.command` will be up to date and work normally again.
+
 ---
 
 ## Troubleshooting
@@ -126,6 +137,7 @@ color tags in Finder to any scripts that were updated.
 | Problem | Fix |
 |---|---|
 | `.command` file blocked by macOS | Right-click → Open instead of double-clicking |
+| `git_pull.command` fails after a repo refactor | Run `cd /Volumes/LaCie/_scripts && git pull origin main` in Terminal once |
 | `config.json not found` | Complete Step 2 |
 | `ROOT volume not mounted` | Plug in the drive before running |
 | `python3: command not found` | Install Python 3 from python.org |
