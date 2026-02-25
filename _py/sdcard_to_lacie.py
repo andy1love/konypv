@@ -30,6 +30,10 @@ from typing import Dict, Tuple, List, Optional
 
 from config_loader import load_config
 
+def die(msg: str, code: int = 1):
+    print(f"ERROR: {msg}", file=sys.stderr)
+    sys.exit(code)
+
 # ---------- Config / Environment ----------
 CFG = load_config()
 
@@ -59,10 +63,6 @@ BIN_PATTERN = re.compile(r"^(?P<ymd>\d{8})_(?P<seq>\d{2})(?:_.*)?$")
 SUFFIX_ALLOWED = re.compile(r"^[A-Za-z0-9_-]+$")  # what we allow as a suffix (no spaces)
 
 # ---------- Helpers ----------
-def die(msg: str, code: int = 1):
-    print(f"ERROR: {msg}", file=sys.stderr)
-    sys.exit(code)
-
 def is_hidden_or_metadata(p: Path) -> bool:
     return p.name.startswith(".") or p.name.startswith("._")
 
