@@ -71,6 +71,9 @@ notes/*
 
 _py/config.json
 
+# Installer scripts (distributed via Dropbox, not cloned with repo)
+installer/
+
 # Sensitive data (if any)
 # Uncomment if you have sensitive files
 # *.key
