@@ -23,9 +23,11 @@ def tag(path, name, idx):
     )
     print(f'  tagged {os.path.basename(path)} -> {name}')
 
+PY_DIR = os.path.dirname(SCRIPT_DIR)  # one level up: _scripts/_py/
+
 tagged_any = False
 for base, (name, idx) in FILE_TAGS.items():
-    full = os.path.join(SCRIPT_DIR, '_py', base)
+    full = os.path.join(PY_DIR, base)
     if os.path.exists(full):
         tag(full, name, idx)
         tagged_any = True
@@ -33,7 +35,7 @@ for base, (name, idx) in FILE_TAGS.items():
         print(f'  skipped {base} (not found)')
 
 if tagged_any:
-    tag(os.path.join(SCRIPT_DIR, '_py'), 'Green', 2)
+    tag(PY_DIR, 'Green', 2)
 "
 
 echo ""
