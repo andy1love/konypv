@@ -19,18 +19,32 @@
     "k": "IDENO",
     "i": "ISHIHARA",
     "s": "SHIBUTA",
-    "t": "TAKAYAMA_YOKOI"
+    "t": "TAKAYAMA_YOKOI",
+    "y": "SHIRAISHI_MIYATA_SUZUKI",
+    "x": "SHIGEMATSU_YOSHIOKA_YOSHIDA",
+    "w": "USUI_YOKOTE",
+    "z": "ISHIKAWA_KOYANAGI",
+    "r": "FUKUDA_KIMURA_MORIOKA",
+    "v": "SHUTOU_EGAMI_TSUKADA",
+    "u": "SUZUKI_SHIBUYA_ITO"
   },
 
   "user_dest_roots": {
-    "ANDY": "/Volumes/4TBSSD/DORM_LaCie",
-    "AIZAWA": "/Volumes/prtb_miko",
+    "ANDY": "/Volumes/4TBSSD/KONYPV",
+    "AIZAWA": "/Volumes/prtb_andy",
     "FURUSAWA": "/Volumes/FURU_DRIVE",
     "GOYA": "/Volumes/GOYA_DRIVE",
     "IDENO": "/Volumes/IDENO_DRIVE",
-    "ISHIHARA": "/Volumes/prtb_coco",
+    "ISHIHARA": "/Volumes/ISHIHARA_DRIVE",
     "SHIBUTA": "/Volumes/SHIBUTA_DRIVE",
-    "TAKAYAMA_YOKOI": "/Volumes/TAKAYAMA_YOKOI_DRIVE"
+    "TAKAYAMA_YOKOI": "/Volumes/TAKAYAMA_YOKOI_DRIVE",
+    "SHIRAISHI_MIYATA_SUZUKI": "/Volumes/SHIRAISHI_MIYATA_SUZUKI_DRIVE",
+    "SHIGEMATSU_YOSHIOKA_YOSHIDA": "/Volumes/SHIGEMATSU_YOSHIOKA_YOSHIDA_DRIVE",
+    "USUI_YOKOTE": "/Volumes/USUI_YOKOTE_DRIVE",
+    "ISHIKAWA_KOYANAGI": "/Volumes/ISHIKAWA_KOYANAGI_DRIVE",
+    "FUKUDA_KIMURA_MORIOKA": "/Volumes/FUKUDA_KIMURA_MORIOKA_DRIVE",
+    "SHUTOU_EGAMI_TSUKADA": "/Volumes/SHUTOU_EGAMI_TSUKADA_DRIVE",
+    "SUZUKI_SHIBUYA_ITO": "/Volumes/SUZUKI_SHIBUYA_ITO_DRIVE"
   },
 
   "excludes": [
@@ -48,7 +62,6 @@
     "flags": ["-r", "--progress"]
   },
   
-
   "file_request_urls": {
     "ANDY": "https://www.dropbox.com/request/Ks41xhcgyUtc1y9a8xLI",
     "AIZAWA": "https://www.dropbox.com/request/cFvmzXSAlk6gVvGc66TF",
@@ -57,8 +70,14 @@
     "IDENO": "https://www.dropbox.com/request/HDHP0gwLVnDrlJJSoz1W",
     "ISHIHARA": "https://www.dropbox.com/request/rbUkWyv0TehUHe6dZV07",
     "SHIBUTA": "https://www.dropbox.com/request/j1IwagPluE5ox5MfQ85F",
-    "TAKAYAMA_YOKOI": "https://www.dropbox.com/request/vgIUWgccSNa5F54aNDXj"
-}
+    "TAKAYAMA_YOKOI": "https://www.dropbox.com/request/vgIUWgccSNa5F54aNDXj",
+    "SHIRAISHI_MIYATA_SUZUKI": "https://www.dropbox.com/request/H069HKR2tDrDZPrLW6fe",
+    "SHIGEMATSU_YOSHIOKA_YOSHIDA": "https://www.dropbox.com/request/25kEXZLtzHHBWspHGwsn",
+    "USUI_YOKOTE": "https://www.dropbox.com/request/0KSiRvTmK0RCLwSZBvtP",
+    "ISHIKAWA_KOYANAGI": "https://www.dropbox.com/request/m3wGHHLM7u8MPWrV96Dl",
+    "FUKUDA_KIMURA_MORIOKA": "https://www.dropbox.com/request/AJ9uswQfUJIvq7CHNxtx",
+    "SHUTOU_EGAMI_TSUKADA": "https://www.dropbox.com/request/kraaBdt1iFL3T7esrPmw",
+    "SUZUKI_SHIBUYA_ITO": "https://www.dropbox.com/request/wUaQKSSRFjTnmHS6XBm9"
+  }
   
-  
-}
+ }
