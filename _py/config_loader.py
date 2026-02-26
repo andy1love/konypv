@@ -24,7 +24,7 @@ def load_config(cfg_path=None) -> dict:
         cfg.setdefault("PROXY_POOL_ROOT", str(root / "PROXY_POOL"))
         if "scripts" not in cfg:
             cfg["scripts"] = {}
-        cfg["scripts"].setdefault("ingest", str(root / "_scripts/sdcard_to_lacie.py"))
-        cfg["scripts"].setdefault("import", str(root / "_scripts/auto_import_media_to_res.py"))
+        cfg["scripts"].setdefault("ingest", str(root / "_scripts/_py/sdcard_to_lacie.py"))
+        cfg["scripts"].setdefault("import", str(root / "_scripts/_py/auto_import_media_to_res.py"))
 
     return cfg
