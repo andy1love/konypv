@@ -22,6 +22,7 @@ import os
 import re
 import bisect
 from pathlib import Path
+from typing import Optional
 from datetime import datetime, timezone
 
 PATTERN = re.compile(r"^C(\d{4})\.MP4$", re.IGNORECASE)
@@ -62,7 +63,7 @@ def _unescape_spaces_if_needed(p: Path) -> Path:
         return Path(raw.replace("\\ ", " "))
     return p
 
-def prompt_path(prompt_text: str, must_exist_dir=True, default: Path | None = None) -> Path:
+def prompt_path(prompt_text: str, must_exist_dir=True, default: Optional[Path] = None) -> Path:
     while True:
         raw = input(prompt_text).strip()
         if not raw and default is not None:
