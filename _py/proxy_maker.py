@@ -39,12 +39,15 @@ def die(msg: str, code: int = 1):
 
 def pick_user(keymap: dict) -> str:
     print("Select user:")
+    print("  [0] All users")
     for letter in sorted(keymap.keys()):
         print(f"  [{letter}] {keymap[letter]}")
     while True:
-        choice = input("Enter letter (or q to quit): ").strip().lower()
+        choice = input("Enter letter (or 0 for all, q to quit): ").strip().lower()
         if choice == "q":
             die("Aborted.", code=0)
+        if choice == "0":
+            return "ALL"
         if choice in keymap:
             return keymap[choice]
         print("Invalid choice. Try again.")
@@ -260,11 +263,177 @@ def run_ffmpeg(input_path: Path, output_path: Path, task_idx: int = 0, total_tas
 
     print(f"✅ Proxy created: {output_path}")
 
+# ---------------- All-users snapshot ----------------
+
+def snapshot_all_users(media_pool_root: Path, proxy_pool_root: Path, keymap: dict):
+    """
+    Scan both pools for all users, write 3 timestamped CSVs to
+    <script_dir>/output/pool_snapshot/, and print a summary.
+    """
+    out_dir = Path(__file__).parent / "output" / "pool_snapshot"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    media_csv_path   = out_dir / f"media_pool_{ts}.csv"
+    proxy_csv_path   = out_dir / f"proxy_pool_{ts}.csv"
+    missing_csv_path = out_dir / f"missing_proxies_{ts}.csv"
+
+    names = list(dict.fromkeys(keymap.values()))  # dedupe, preserve order
+
+    all_media_rows:   List[Tuple[str, str, str, int]] = []  # (user, rel, full, size)
+    all_proxy_rows:   List[Tuple[str, str, str, int]] = []
+    all_missing_rows: List[Tuple[str, str, str, str]] = []  # (user, rel, media_full, expected_proxy)
+
+    for name in names:
+        src_root = media_pool_root / name
+        dst_root = proxy_pool_root / name
+
+        # --- media pool ---
+        if src_root.exists():
+            for p in discover_sources(src_root):
+                rel = str(p.relative_to(src_root))
+                try:
+                    size = p.stat().st_size
+                except FileNotFoundError:
+                    size = 0
+                all_media_rows.append((name, rel, str(p), size))
+
+                # check if proxy is missing or stale
+                existing_proxy = find_existing_proxy(p, dst_root, src_root)
+                if existing_proxy is None or newer_than(p, existing_proxy):
+                    expected = str(dst_root / p.relative_to(src_root).parent / p.name)
+                    all_missing_rows.append((name, rel, str(p), expected))
+
+        # --- proxy pool ---
+        if dst_root.exists():
+            for p in dst_root.rglob("*"):
+                if not p.is_file():
+                    continue
+                if is_hidden_or_metadata(p):
+                    continue
+                if p.suffix.lower() not in VIDEO_EXTS:
+                    continue
+                rel = str(p.relative_to(dst_root))
+                try:
+                    size = p.stat().st_size
+                except FileNotFoundError:
+                    size = 0
+                all_proxy_rows.append((name, rel, str(p), size))
+
+    # write CSVs
+    with media_csv_path.open("w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["user", "relative_path", "full_path", "size_bytes"])
+        w.writerows(all_media_rows)
+
+    with proxy_csv_path.open("w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["user", "relative_path", "full_path", "size_bytes"])
+        w.writerows(all_proxy_rows)
+
+    with missing_csv_path.open("w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["user", "relative_path", "media_full_path", "expected_proxy_path"])
+        w.writerows(all_missing_rows)
+
+    print(f"\n=== Pool Snapshot ===")
+    print(f"Media pool files:  {len(all_media_rows)}")
+    print(f"Proxy pool files:  {len(all_proxy_rows)}")
+    print(f"Missing proxies:   {len(all_missing_rows)}")
+    print(f"\nSnapshot CSVs written to: {out_dir}")
+    print(f"  {media_csv_path.name}")
+    print(f"  {proxy_csv_path.name}")
+    print(f"  {missing_csv_path.name}")
+
+
+# ---------------- Per-user encode ----------------
+
+def encode_user(NAME: str, media_pool_root: Path, proxy_pool_root: Path, ask_confirm: bool = True):
+    """Scan, plan, and encode proxies for a single user. Returns (generated_count, error_count)."""
+    src_root = media_pool_root / NAME
+    dst_root = proxy_pool_root / NAME
+
+    if not src_root.exists():
+        print(f"[SKIP] Media pool not found for {NAME}: {src_root}")
+        return 0, 0
+
+    dst_root.mkdir(parents=True, exist_ok=True)
+
+    print(f"\n=== Proxy Generation ===")
+    print(f"User:           {NAME}")
+    print(f"Source (media): {src_root}")
+    print(f"Dest (proxies): {dst_root}")
+    print("Scanning for video files…")
+
+    src_files: List[Path] = discover_sources(src_root)
+    if not src_files:
+        print("No matching files found under the user's media pool. Nothing to do.")
+        return 0, 0
+
+    tasks: List[Tuple[Path, Path]] = []
+    total_size = 0
+    for src in src_files:
+        rel = src.relative_to(src_root)
+        out = dst_root / rel.parent / src.name
+
+        existing_proxy = find_existing_proxy(src, dst_root, src_root)
+        if existing_proxy and not newer_than(src, existing_proxy):
+            continue
+
+        tasks.append((src, out))
+        try:
+            total_size += src.stat().st_size
+        except FileNotFoundError:
+            pass
+
+    print(f"Found {len(src_files)} source file(s).")
+    print(f"Planned {len(tasks)} encode(s). Estimated input size: {pretty_size(total_size)}")
+    if len(tasks) == 0:
+        print("All proxies appear up-to-date. ✅")
+        return 0, 0
+
+    if ask_confirm:
+        proceed = input("Proceed with encoding? [Y/n]: ").strip().lower()
+        if proceed not in ("", "y", "yes"):
+            die("Aborted by user.", code=0)
+
+    generated: List[Tuple[str, str]] = []
+    errors = 0
+    for i, (src, out) in enumerate(tasks, 1):
+        print(f"\n⏳ [{i}/{len(tasks)}] Encoding: {src.name}")
+        try:
+            run_ffmpeg(src, out, task_idx=i, total_tasks=len(tasks))
+            generated.append((str(src), str(out)))
+        except subprocess.CalledProcessError as e:
+            errors += 1
+            print(f"❌ ffmpeg failed for {src} (exit {e.returncode})")
+
+    reports_dir = dst_root / "_reports"
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    csv_path = reports_dir / f"proxies_{ts}.csv"
+
+    if generated:
+        with csv_path.open("w", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["source_path", "proxy_path"])
+            w.writerows(generated)
+        print(f"\n📝 Report written: {csv_path}")
+    else:
+        print("\n(No new proxies were generated; no CSV report written.)")
+
+    if errors:
+        print(f"\nDone with {errors} error(s).")
+    else:
+        print("\n🎬 All proxies generated successfully.")
+
+    return len(generated), errors
+
+
 # ---------------- Main ----------------
 def main():
     cfg = load_config()
 
-    # Fail fast if required config keys are missing
     if "MEDIA_POOL_ROOT" not in cfg:
         die("Config missing 'MEDIA_POOL_ROOT' key.")
     if "PROXY_POOL_ROOT" not in cfg:
@@ -284,81 +453,22 @@ def main():
 
     NAME = pick_user(keymap)
 
-    src_root = media_pool_root / NAME
-    dst_root = proxy_pool_root / NAME
-    if not src_root.exists():
-        die(f"User media pool not found: {src_root}")
-    dst_root.mkdir(parents=True, exist_ok=True)
-
-    print(f"\n=== Proxy Generation ===")
-    print(f"User:           {NAME}")
-    print(f"Source (media): {src_root}")
-    print(f"Dest (proxies): {dst_root}")
-    print("Scanning for video files…")
-
-    src_files: List[Path] = discover_sources(src_root)
-    if not src_files:
-        print("No matching files found under the user's media pool. Nothing to do.")
-        return
-
-    # Plan work: mirror structure, SAME filename (no _proxy suffix)
-    tasks: List[Tuple[Path, Path]] = []
-    total_size = 0
-    for src in src_files:
-        rel = src.relative_to(src_root)
-        out = dst_root / rel.parent / src.name
-        
-        # Check if proxy exists in original location or _sent directories
-        existing_proxy = find_existing_proxy(src, dst_root, src_root)
-        if existing_proxy and not newer_than(src, existing_proxy):
-            continue
-        
-        tasks.append((src, out))
-        try:
-            total_size += src.stat().st_size
-        except FileNotFoundError:
-            pass
-
-    print(f"Found {len(src_files)} source file(s).")
-    print(f"Planned {len(tasks)} encode(s). Estimated input size: {pretty_size(total_size)}")
-    if len(tasks) == 0:
-        print("All proxies appear up-to-date. ✅")
-        return
-
-    proceed = input("Proceed with encoding? [Y/n]: ").strip().lower()
-    if proceed not in ("", "y", "yes"):
-        die("Aborted by user.", code=0)
-
-    generated: List[Tuple[str, str]] = []  # (source_path, proxy_path)
-    errors = 0
-    for i, (src, out) in enumerate(tasks, 1):
-        print(f"\n⏳ [{i}/{len(tasks)}] Encoding: {src.name}")
-        try:
-            run_ffmpeg(src, out, task_idx=i, total_tasks=len(tasks))
-            generated.append((str(src), str(out)))
-        except subprocess.CalledProcessError as e:
-            errors += 1
-            print(f"❌ ffmpeg failed for {src} (exit {e.returncode})")
-
-    # --- CSV report of proxies generated this run ---
-    reports_dir = dst_root / "_reports"
-    reports_dir.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    csv_path = reports_dir / f"proxies_{ts}.csv"
-
-    if generated:
-        with csv_path.open("w", newline="") as f:
-            w = csv.writer(f)
-            w.writerow(["source_path", "proxy_path"])
-            w.writerows(generated)
-        print(f"\n📝 Report written: {csv_path}")
+    if NAME == "ALL":
+        snapshot_all_users(media_pool_root, proxy_pool_root, keymap)
+        proceed = input("\nProceed with encoding all missing proxies? [y/N]: ").strip().lower()
+        if proceed not in ("y", "yes"):
+            die("Aborted.", code=0)
+        names_to_process = list(dict.fromkeys(keymap.values()))
+        total_generated = 0
+        total_errors = 0
+        for name in names_to_process:
+            gen, err = encode_user(name, media_pool_root, proxy_pool_root, ask_confirm=False)
+            total_generated += gen
+            total_errors += err
+        print(f"\n{'='*50}")
+        print(f"All users complete. Generated: {total_generated}  Errors: {total_errors}")
     else:
-        print("\n(No new proxies were generated; no CSV report written.)")
-
-    if errors:
-        print(f"\nDone with {errors} error(s).")
-    else:
-        print("\n🎬 All proxies generated successfully.")
+        encode_user(NAME, media_pool_root, proxy_pool_root, ask_confirm=True)
 
 if __name__ == "__main__":
     main()
