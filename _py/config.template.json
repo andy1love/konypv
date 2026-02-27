@@ -5,6 +5,8 @@
 
   "DEFAULT_DAILIES_ROLL": "/Volumes/Untitled/PRIVATE/M4ROOT/CLIP",
 
+  "CLONE_ROOT": "/Volumes/PVCLONE",
+
   "resolve_api_paths": [
     "/Library/Application Support/Blackmagic Design/DaVinci Resolve/Developer/Scripting/Modules",
     "/Applications/DaVinci Resolve/DaVinci Resolve.app/Contents/Resources/Developer/Scripting/Modules",

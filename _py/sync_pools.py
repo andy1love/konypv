@@ -133,6 +133,8 @@ class Config:
 
         self.MEDIA_POOL_ROOT = Path(self.data["MEDIA_POOL_ROOT"])
         self.PROXY_POOL_ROOT = Path(self.data["PROXY_POOL_ROOT"])
+        self.ROOT = Path(self.data["ROOT"]) if "ROOT" in self.data else self.MEDIA_POOL_ROOT.parent
+        self.CLONE_ROOT = Path(self.data["CLONE_ROOT"]) if "CLONE_ROOT" in self.data else None
         self.user_keymap = self.data["user_keymap"]
         self.user_dest_roots = self.data["user_dest_roots"]
         self.excludes = self.data.get("excludes", [])
@@ -228,11 +230,14 @@ def rsync_copy_missing_mp4s_to_src(dst: Path, src: Path, excludes_file: Path, fl
 
 def choose_user(cfg: Config) -> str:
     print("Select user:")
+    print("  [0] All users — full clone to CLONE_ROOT")
     for k in sorted(cfg.user_keymap.keys()):
         print(f"  [{k}] {cfg.user_keymap[k]}")
-    choice = input("Enter letter (or q to quit): ").strip().lower()
+    choice = input("Enter letter (or 0 for full clone, q to quit): ").strip().lower()
     if choice == "q":
         sys.exit(0)
+    if choice == "0":
+        return "ALL"
     if choice not in cfg.user_keymap:
         die(f"Invalid choice '{choice}'.")
     return cfg.user_keymap[choice]
@@ -304,39 +309,51 @@ def main():
     cfg = Config(config_path)
 
     name = choose_user(cfg)
-    dest_media_root, dest_proxy_root = cfg.destination_roots_for(name)
 
     excludes_file = write_excludes_tempfile(cfg.excludes)
     try:
-        mode = choose_menu(name)
-        if mode == 6:
-            return
+        if name == "ALL":
+            if not cfg.CLONE_ROOT:
+                die("'CLONE_ROOT' not set in config.json. Add it to use the full-clone option.")
+            ensure_mounted(cfg.ROOT, "ROOT")
+            ensure_mounted(cfg.CLONE_ROOT, "CLONE_ROOT")
+            print(f"\nFull clone: {cfg.ROOT}  →  {cfg.CLONE_ROOT}")
+            if not confirm("Proceed with full clone?", default_yes=False):
+                return
+            with with_lock(cfg.CLONE_ROOT):
+                sync_pair_forward_then_optional_back(cfg, "ALL", cfg.ROOT, cfg.CLONE_ROOT, excludes_file, cfg.rsync_flags, "CLONE_all")
+        else:
+            dest_media_root, dest_proxy_root = cfg.destination_roots_for(name)
 
-        pairs = []  # (src, dst, label)
-        if mode in (1, 3):
-            pairs.append((cfg.MEDIA_POOL_ROOT / name, dest_media_root / name, "MEDIA_user"))
-        if mode in (2, 3):
-            pairs.append((cfg.PROXY_POOL_ROOT / name, dest_proxy_root / name, "PROXY_user"))
-        if mode == 4:
-            pairs.append((cfg.MEDIA_POOL_ROOT, dest_media_root, "MEDIA_all"))
-        if mode == 5:
-            pairs.append((cfg.PROXY_POOL_ROOT, dest_proxy_root, "PROXY_all"))
+            mode = choose_menu(name)
+            if mode == 6:
+                return
 
-        # Lock on the top pool roots involved
-        locks = set()
-        for _, dst, label in pairs:
-            top = dst if label.endswith("_all") else dst.parent
-            locks.add(top)
+            pairs = []  # (src, dst, label)
+            if mode in (1, 3):
+                pairs.append((cfg.MEDIA_POOL_ROOT / name, dest_media_root / name, "MEDIA_user"))
+            if mode in (2, 3):
+                pairs.append((cfg.PROXY_POOL_ROOT / name, dest_proxy_root / name, "PROXY_user"))
+            if mode == 4:
+                pairs.append((cfg.MEDIA_POOL_ROOT, dest_media_root, "MEDIA_all"))
+            if mode == 5:
+                pairs.append((cfg.PROXY_POOL_ROOT, dest_proxy_root, "PROXY_all"))
 
-        lock_ctxs = [with_lock(root) for root in locks]
-        for ctx in lock_ctxs:
-            ctx.__enter__()
-        try:
-            for src, dst, label in pairs:
-                sync_pair_forward_then_optional_back(cfg, name, src, dst, excludes_file, cfg.rsync_flags, label)
-        finally:
-            for ctx in reversed(lock_ctxs):
-                ctx.__exit__(None, None, None)
+            # Lock on the top pool roots involved
+            locks = set()
+            for _, dst, label in pairs:
+                top = dst if label.endswith("_all") else dst.parent
+                locks.add(top)
+
+            lock_ctxs = [with_lock(root) for root in locks]
+            for ctx in lock_ctxs:
+                ctx.__enter__()
+            try:
+                for src, dst, label in pairs:
+                    sync_pair_forward_then_optional_back(cfg, name, src, dst, excludes_file, cfg.rsync_flags, label)
+            finally:
+                for ctx in reversed(lock_ctxs):
+                    ctx.__exit__(None, None, None)
 
         print("\n✅ Done.")
     finally:
