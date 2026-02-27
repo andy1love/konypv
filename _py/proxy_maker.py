@@ -267,83 +267,41 @@ def run_ffmpeg(input_path: Path, output_path: Path, task_idx: int = 0, total_tas
 
 def snapshot_all_users(media_pool_root: Path, proxy_pool_root: Path, keymap: dict):
     """
-    Scan both pools for all users, write 3 timestamped CSVs to
-    <script_dir>/output/pool_snapshot/, and print a summary.
+    Scan both pools for all users, write a missing-proxies CSV to
+    <script_dir>/../data/output/missing_proxies/, and print a summary.
     """
-    out_dir = Path(__file__).parent / "output" / "pool_snapshot"
+    out_dir = Path(__file__).parent.parent / "data" / "output" / "missing_proxies"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    media_csv_path   = out_dir / f"media_pool_{ts}.csv"
-    proxy_csv_path   = out_dir / f"proxy_pool_{ts}.csv"
-    missing_csv_path = out_dir / f"missing_proxies_{ts}.csv"
+    missing_csv_path = out_dir / f"{ts}_missing_proxies.csv"
 
     names = list(dict.fromkeys(keymap.values()))  # dedupe, preserve order
 
-    all_media_rows:   List[Tuple[str, str, str, int]] = []  # (user, rel, full, size)
-    all_proxy_rows:   List[Tuple[str, str, str, int]] = []
     all_missing_rows: List[Tuple[str, str, str, str]] = []  # (user, rel, media_full, expected_proxy)
 
     for name in names:
         src_root = media_pool_root / name
         dst_root = proxy_pool_root / name
 
-        # --- media pool ---
-        if src_root.exists():
-            for p in discover_sources(src_root):
+        if not src_root.exists():
+            continue
+
+        for p in discover_sources(src_root):
+            existing_proxy = find_existing_proxy(p, dst_root, src_root)
+            if existing_proxy is None or newer_than(p, existing_proxy):
                 rel = str(p.relative_to(src_root))
-                try:
-                    size = p.stat().st_size
-                except FileNotFoundError:
-                    size = 0
-                all_media_rows.append((name, rel, str(p), size))
-
-                # check if proxy is missing or stale
-                existing_proxy = find_existing_proxy(p, dst_root, src_root)
-                if existing_proxy is None or newer_than(p, existing_proxy):
-                    expected = str(dst_root / p.relative_to(src_root).parent / p.name)
-                    all_missing_rows.append((name, rel, str(p), expected))
-
-        # --- proxy pool ---
-        if dst_root.exists():
-            for p in dst_root.rglob("*"):
-                if not p.is_file():
-                    continue
-                if is_hidden_or_metadata(p):
-                    continue
-                if p.suffix.lower() not in VIDEO_EXTS:
-                    continue
-                rel = str(p.relative_to(dst_root))
-                try:
-                    size = p.stat().st_size
-                except FileNotFoundError:
-                    size = 0
-                all_proxy_rows.append((name, rel, str(p), size))
-
-    # write CSVs
-    with media_csv_path.open("w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["user", "relative_path", "full_path", "size_bytes"])
-        w.writerows(all_media_rows)
-
-    with proxy_csv_path.open("w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["user", "relative_path", "full_path", "size_bytes"])
-        w.writerows(all_proxy_rows)
+                expected = str(dst_root / p.relative_to(src_root).parent / p.name)
+                all_missing_rows.append((name, rel, str(p), expected))
 
     with missing_csv_path.open("w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["user", "relative_path", "media_full_path", "expected_proxy_path"])
         w.writerows(all_missing_rows)
 
-    print(f"\n=== Pool Snapshot ===")
-    print(f"Media pool files:  {len(all_media_rows)}")
-    print(f"Proxy pool files:  {len(all_proxy_rows)}")
-    print(f"Missing proxies:   {len(all_missing_rows)}")
-    print(f"\nSnapshot CSVs written to: {out_dir}")
-    print(f"  {media_csv_path.name}")
-    print(f"  {proxy_csv_path.name}")
-    print(f"  {missing_csv_path.name}")
+    print(f"\n=== Missing Proxies Snapshot ===")
+    print(f"Missing proxies:  {len(all_missing_rows)}")
+    print(f"\nReport written to: {missing_csv_path}")
 
 
 # ---------------- Per-user encode ----------------
