@@ -54,16 +54,33 @@ def confirm(prompt: str, default_yes: bool = True) -> bool:
 def normalize_dragged_path(p: str) -> str:
     """Handle paths dragged into terminal that may have escaped spaces."""
     p = p.strip()
-    # Try as-is first
     if Path(p).exists():
         return p
-    # If path starts with "/" and contains spaces (possibly escaped), try unescaping
     if p.startswith("/") and (" " in p or "\\ " in p):
-        # Replace backslash-space with regular space
         unescaped = p.replace("\\ ", " ")
         if Path(unescaped).exists():
             return unescaped
     return p
+
+def collect_multiple_paths() -> List[Path]:
+    """Prompt the user to drag in folders one at a time. Blank line ends input."""
+    folders: List[Path] = []
+    print("Enter folders one at a time (blank line when done):")
+    while True:
+        raw = input(f"  Folder {len(folders) + 1}: ").strip()
+        if not raw:
+            if not folders:
+                print("  No folders entered. Try again.")
+                continue
+            break
+        raw = normalize_dragged_path(raw)
+        p = Path(raw)
+        if not p.exists():
+            print(f"  Path not found: {raw}  — skipping.")
+            continue
+        folders.append(p)
+        print(f"  Added: {p}")
+    return folders
 
 def main():
     # 1) Load config (allow custom path as argv[1], or use default in same directory)
@@ -136,36 +153,47 @@ def main():
             die(f"Ingest failed with exit code {e.returncode}")
         print("\n✅ Ingest finished.")
 
-    # 6) Determine folder to import (suffix-aware)
+    # 6) Determine folder(s) to import (suffix-aware)
+    def pick_import_mode() -> List[Path]:
+        """Ask whether to import one or multiple folders; return list of validated paths."""
+        print("\nImport mode:")
+        print("  [1] Single folder")
+        print("  [2] Multiple folders (one timeline per folder)")
+        while True:
+            choice = input("Choice [1]: ").strip()
+            if choice in ("", "1"):
+                raw = input("Drag in the folder path you want to import: ").strip()
+                if not raw:
+                    die("No folder provided.")
+                raw = normalize_dragged_path(raw)
+                p = Path(raw)
+                if not p.exists():
+                    die(f"Folder not found: {p}")
+                return [p]
+            if choice == "2":
+                return collect_multiple_paths()
+            print("  Invalid choice. Enter 1 or 2.")
+
     latest = newest_bin(media_pool)
     if latest:
         print(f"\nLatest bin detected: {latest.name}")
         use_latest = confirm("Use this folder for Resolve import?", default_yes=True)
-        if not use_latest:
-            manual = input("Drag in the folder path you want to import: ").strip()
-            if not manual:
-                die("No folder provided.")
-            manual = normalize_dragged_path(manual)
-            latest = Path(manual)
-            if not latest.exists():
-                die(f"Folder not found: {latest}")
+        if use_latest:
+            folders_to_import = [latest]
+        else:
+            folders_to_import = pick_import_mode()
     else:
         print(f"\nNo YYYYMMDD_##[_suffix] folders found in {media_pool}.")
-        manual = input("Enter absolute folder path to import (or press Enter to abort): ").strip()
-        if not manual:
-            die("Aborted (no folder to import).")
-        manual = normalize_dragged_path(manual)
-        latest = Path(manual)
-        if not latest.exists():
-            die(f"Folder not found: {latest}")
+        folders_to_import = pick_import_mode()
 
-    # 7) Run import (pass the folder path)
-    import_cmd = [python_exec, str(import_script), str(latest)]
-    print(f"\n— Running import: {' '.join(import_cmd)}")
-    try:
-        subprocess.run(import_cmd, check=True, env=env)
-    except subprocess.CalledProcessError as e:
-        die(f"Import failed with exit code {e.returncode}")
+    # 7) Run import for each folder
+    for folder in folders_to_import:
+        import_cmd = [python_exec, str(import_script), str(folder)]
+        print(f"\n— Running import: {' '.join(import_cmd)}")
+        try:
+            subprocess.run(import_cmd, check=True, env=env)
+        except subprocess.CalledProcessError as e:
+            die(f"Import failed for {folder} with exit code {e.returncode}")
 
     print("\n✅ Import finished.")
     print("\n🎬 Pipeline complete.")
