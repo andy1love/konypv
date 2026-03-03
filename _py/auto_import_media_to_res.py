@@ -367,7 +367,8 @@ else:
     
     timeline = media_pool.CreateTimelineFromClips(timeline_name, added_items)
     if not timeline:
-        raise SystemExit("Failed to create timeline from imported clips.")
-    
+        print(f"WARNING: Could not create timeline '{timeline_name}' — a timeline with that name may already exist. Media was imported.", file=sys.stderr)
+        sys.exit(0)
+
     project.SetCurrentTimeline(timeline)
     print(f"Created timeline: '{timeline_name}' with {imported_count} clip(s) in bin '{target_bin.GetName()}'.")

@@ -190,10 +190,9 @@ def main():
     for folder in folders_to_import:
         import_cmd = [python_exec, str(import_script), str(folder)]
         print(f"\n— Running import: {' '.join(import_cmd)}")
-        try:
-            subprocess.run(import_cmd, check=True, env=env)
-        except subprocess.CalledProcessError as e:
-            die(f"Import failed for {folder} with exit code {e.returncode}")
+        result = subprocess.run(import_cmd, env=env)
+        if result.returncode != 0:
+            print(f"  WARNING: Import returned exit code {result.returncode} for {folder} — continuing.")
 
     print("\n✅ Import finished.")
     print("\n🎬 Pipeline complete.")
