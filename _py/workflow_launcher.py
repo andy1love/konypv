@@ -62,24 +62,25 @@ def normalize_dragged_path(p: str) -> str:
             return unescaped
     return p
 
-def collect_multiple_paths() -> List[Path]:
-    """Prompt the user to drag in folders one at a time. Blank line ends input."""
+def collect_paths() -> List[Path]:
+    """Prompt for folder paths one at a time.
+    First path is required. A blank entry on any subsequent prompt ends input.
+    """
     folders: List[Path] = []
-    print("Enter folders one at a time (blank line when done):")
     while True:
-        raw = input(f"  Folder {len(folders) + 1}: ").strip()
+        is_first = len(folders) == 0
+        prompt = "Drag in folder path to import: " if is_first else f"  Folder {len(folders) + 1} (or Enter to finish): "
+        raw = input(prompt).strip()
         if not raw:
-            if not folders:
-                print("  No folders entered. Try again.")
-                continue
+            if is_first:
+                die("No folder provided.")
             break
         raw = normalize_dragged_path(raw)
         p = Path(raw)
         if not p.exists():
-            print(f"  Path not found: {raw}  — skipping.")
+            print(f"  Path not found: {raw}  — try again.")
             continue
         folders.append(p)
-        print(f"  Added: {p}")
     return folders
 
 def main():
@@ -154,26 +155,6 @@ def main():
         print("\n✅ Ingest finished.")
 
     # 6) Determine folder(s) to import (suffix-aware)
-    def pick_import_mode() -> List[Path]:
-        """Ask whether to import one or multiple folders; return list of validated paths."""
-        print("\nImport mode:")
-        print("  [1] Single folder")
-        print("  [2] Multiple folders (one timeline per folder)")
-        while True:
-            choice = input("Choice [1]: ").strip()
-            if choice in ("", "1"):
-                raw = input("Drag in the folder path you want to import: ").strip()
-                if not raw:
-                    die("No folder provided.")
-                raw = normalize_dragged_path(raw)
-                p = Path(raw)
-                if not p.exists():
-                    die(f"Folder not found: {p}")
-                return [p]
-            if choice == "2":
-                return collect_multiple_paths()
-            print("  Invalid choice. Enter 1 or 2.")
-
     latest = newest_bin(media_pool)
     if latest:
         print(f"\nLatest bin detected: {latest.name}")
@@ -181,10 +162,10 @@ def main():
         if use_latest:
             folders_to_import = [latest]
         else:
-            folders_to_import = pick_import_mode()
+            folders_to_import = collect_paths()
     else:
         print(f"\nNo YYYYMMDD_##[_suffix] folders found in {media_pool}.")
-        folders_to_import = pick_import_mode()
+        folders_to_import = collect_paths()
 
     # 7) Run import for each folder
     for folder in folders_to_import:
