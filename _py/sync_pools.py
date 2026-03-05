@@ -26,7 +26,8 @@ def which(cmd: str) -> Optional[str]:
 def run(cmd: List[str], log_path: Optional[Path] = None) -> int:
     """Run a command streaming output; tee to log if provided."""
     eprint(" ".join([f"'{c}'" if " " in c else c for c in cmd]))
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1, text=True)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1,
+                            text=True, encoding="utf-8", errors="replace")
     logf = None
     try:
         if log_path:
