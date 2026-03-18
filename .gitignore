@@ -78,6 +78,13 @@ _py/config.json
 # Installer scripts (distributed via Dropbox, not cloned with repo)
 installer/
 
+# Push logs (local only)
+_logs/*
+!_logs/.gitkeep
+docs/push_log.md
+docs/push_log_archive/*
+!docs/push_log_archive/.gitkeep
+
 # Sensitive data (if any)
 # Uncomment if you have sensitive files
 # *.key
