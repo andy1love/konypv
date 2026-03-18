@@ -65,6 +65,10 @@ Temporary Items
 data/output/*
 !data/output/.gitkeep
 
+# Input files (keep directory structure via .gitkeep)
+data/input/*
+!data/input/.gitkeep
+
 # Private local notes (keep directory structure via .gitkeep)
 notes/*
 !notes/.gitkeep
