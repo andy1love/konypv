@@ -10,11 +10,85 @@ if [ ! -f "$CONFIG" ]; then
 fi
 
 REPO_ROOT="$SCRIPT_DIR"
+LOGS_DIR="$REPO_ROOT/_logs"
+mkdir -p "$LOGS_DIR"
+
+TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
+TIMESTAMP_FILE=$(date "+%Y%m%d_%H%M%S")
+BRANCH=$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null)
 OLD_HEAD=$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo "")
 
 echo "Pulling latest from GitHub..."
 echo "Repo: $REPO_ROOT"
-cd "$REPO_ROOT" && git pull origin main
+PULL_OUTPUT=$(cd "$REPO_ROOT" && git pull origin main 2>&1)
+PULL_EXIT=$?
+echo "$PULL_OUTPUT"
+
+# Write pull log
+NEW_HEAD=$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo "")
+OLD_SHORT="${OLD_HEAD:0:7}"
+NEW_SHORT="${NEW_HEAD:0:7}"
+
+if [ $PULL_EXIT -eq 0 ]; then
+  PULL_STATUS="✓ SUCCESS"
+else
+  PULL_STATUS="✗ FAILED (exit $PULL_EXIT)"
+fi
+
+DIFF_STAT=""
+FILES_CHANGED=""
+COMMITS_PULLED=""
+if [ -n "$OLD_HEAD" ] && [ "$OLD_HEAD" != "$NEW_HEAD" ]; then
+  DIFF_STAT=$(git -C "$REPO_ROOT" diff --stat "$OLD_HEAD" HEAD 2>/dev/null)
+  FILES_CHANGED=$(git -C "$REPO_ROOT" diff --name-only "$OLD_HEAD" HEAD 2>/dev/null)
+  COMMITS_PULLED=$(git -C "$REPO_ROOT" log --oneline "$OLD_HEAD..HEAD" 2>/dev/null)
+fi
+
+LATEST_COMMIT_HASH=$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null)
+LATEST_COMMIT_MSG=$(git -C "$REPO_ROOT" log -1 --pretty="%s" 2>/dev/null)
+LATEST_COMMIT_DATE=$(git -C "$REPO_ROOT" log -1 --pretty="%ci" 2>/dev/null)
+
+{
+  echo "# Pull Report — $TIMESTAMP"
+  echo ""
+  echo "## Repo Version"
+  echo ""
+  echo "| Field          | Value                                        |"
+  echo "|----------------|----------------------------------------------|"
+  echo "| Branch         | $BRANCH                                      |"
+  echo "| HEAD           | $LATEST_COMMIT_HASH                          |"
+  echo "| Latest commit  | $LATEST_COMMIT_MSG                           |"
+  echo "| Committed      | $LATEST_COMMIT_DATE                          |"
+  echo "| Pull status    | $PULL_STATUS                                 |"
+  echo ""
+
+  if [ "$OLD_HEAD" = "$NEW_HEAD" ]; then
+    echo "> Already up to date — no new commits."
+    echo ""
+  else
+    echo "**Before:** \`$OLD_SHORT\`  →  **After:** \`$NEW_SHORT\`"
+    echo ""
+    if [ -n "$COMMITS_PULLED" ]; then
+      echo "## Commits Pulled"
+      while IFS= read -r line; do
+        echo "- $line"
+      done <<< "$COMMITS_PULLED"
+      echo ""
+    fi
+    if [ -n "$DIFF_STAT" ]; then
+      echo "## Files Changed"
+      echo '```diff'
+      echo "$DIFF_STAT"
+      echo '```'
+      echo ""
+    fi
+  fi
+
+  echo "## Pull Output"
+  echo '```'
+  echo "$PULL_OUTPUT"
+  echo '```'
+} > "$LOGS_DIR/pull_${TIMESTAMP_FILE}.md"
 
 # Apply Finder color tags to changed .py files
 if [ -n "$OLD_HEAD" ]; then
@@ -56,5 +130,8 @@ if tagged_any:
 fi
 
 echo ""
-echo "Done. Press any key to close."
+echo "Done. Pull log saved to:"
+echo "  $LOGS_DIR/pull_${TIMESTAMP_FILE}.md"
+echo ""
+echo "Press any key to close."
 read -n 1

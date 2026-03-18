@@ -35,6 +35,7 @@ fi
 echo ""
 
 COMMIT_MSG=""
+EXPLANATION=""
 if [ -n "$GIT_STATUS" ]; then
   DEFAULT_MSG="auto: $TIMESTAMP"
   read -p "Commit message [auto: $TIMESTAMP]: " USER_MSG
@@ -44,6 +45,7 @@ if [ -n "$GIT_STATUS" ]; then
     COMMIT_MSG="$USER_MSG"
   fi
 
+  read -p "What changed in this push? (optional, goes in log): " EXPLANATION
   echo ""
   echo "Staging and committing..."
   git -C "$REPO_ROOT" add -A
@@ -94,6 +96,13 @@ PER_PUSH_FILE="$LOGS_DIR/push_${TIMESTAMP_FILE}.md"
   echo "| Message       | $COMMIT_MSG                   |"
   echo "| Status        | $PUSH_STATUS                  |"
   echo ""
+
+  if [ -n "$EXPLANATION" ]; then
+    echo "## Summary"
+    echo ""
+    echo "$EXPLANATION"
+    echo ""
+  fi
 
   if [ -n "$DIFF_STAT" ]; then
     echo "## Files Changed"
@@ -162,6 +171,10 @@ fi
   echo "**Commit:** $PRE_SHORT → $POST_SHORT"
   echo "**Message:** $COMMIT_MSG"
   echo ""
+  if [ -n "$EXPLANATION" ]; then
+    echo "**Summary:** $EXPLANATION"
+    echo ""
+  fi
   if [ -n "$FILES_BULLET" ]; then
     echo "**Files changed:**"
     printf "%b" "$FILES_BULLET"
