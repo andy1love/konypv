@@ -60,10 +60,7 @@
 
   "backsync_globs": ["*.mp4", "*.MP4"],
 
-  "rsync": {
-    "flags": ["-r", "--progress"]
-  },
-  
+
   "file_request_urls": {
     "ANDY": "https://www.dropbox.com/request/Ks41xhcgyUtc1y9a8xLI",
     "AIZAWA": "https://www.dropbox.com/request/cFvmzXSAlk6gVvGc66TF",

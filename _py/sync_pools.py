@@ -148,7 +148,7 @@ class Config:
             if major >= 3:
                 self.rsync_flags = ["-a", "-AX", "--partial", "--append-verify", "--human-readable", "--info=progress2", "--protect-args"]
             else:
-                self.rsync_flags = ["-r", "-E", "--extended-attributes", "--partial", "--append", "--human-readable", "--progress"]
+                self.rsync_flags = ["-a", "-E", "--extended-attributes", "--partial", "--append", "--human-readable", "--progress"]
         else:
             # Use provided flags; if empty list, add minimal safe defaults for system rsync
             if len(raw_flags) == 0:
