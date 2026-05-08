@@ -46,6 +46,23 @@ git --version
 
 ---
 
+### rsync 3.x (Homebrew)
+Required by `sync_pools.py` for full clones and per-user MEDIA/PROXY syncs.
+
+macOS ships `/usr/bin/rsync` (openrsync), which has a stability bug in its delta-transfer code (`Assertion failed: blk_match, blocks.c:303`) that crashes mid-clone with `--append`. `sync_pools.py:106-111` (`pick_rsync_bin`) prefers `/opt/homebrew/bin/rsync` when present, so installing the Homebrew build is the fix.
+
+**Check if installed:**
+```bash
+/opt/homebrew/bin/rsync --version | head -1   # expect: rsync version 3.x
+```
+
+**Install via Homebrew (required):**
+```bash
+brew install rsync
+```
+
+---
+
 ## Optional
 
 ### DaVinci Resolve + Scripting API

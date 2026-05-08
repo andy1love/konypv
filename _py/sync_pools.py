@@ -23,21 +23,75 @@ def which(cmd: str) -> Optional[str]:
     from shutil import which as _which
     return _which(cmd)
 
+# Lines like "  889.52G  29%   54.79MB/s    4:18:03 (xfr#1677, to-chk=398/9477)"
+# or "       37781504   2%   71.81MB/s   00:00:22" — pure progress noise on disk.
+_PROGRESS_RE = re.compile(r"^\s*[\d.,]+\s*[KMGTB]?\s+\d+%")
+_ISSUE_RE = re.compile(r"(error|failed|cannot|permission denied|vanished|unreadable|warning)", re.IGNORECASE)
+# rsync --stats lines we surface in the summary
+_STATS_FILES_RE = re.compile(r"^Number of files:\s+([\d,]+)")
+_STATS_XFER_RE  = re.compile(r"^Number of regular files transferred:\s+([\d,]+)")
+_STATS_BYTES_RE = re.compile(r"^Total transferred file size:\s+(.+?)\s+bytes")
+
+def _format_duration(seconds: float) -> str:
+    s = int(seconds)
+    h, rem = divmod(s, 3600)
+    m, s = divmod(rem, 60)
+    if h:
+        return f"{h}h {m}m {s}s"
+    if m:
+        return f"{m}m {s}s"
+    return f"{s}s"
+
 def run(cmd: List[str], log_path: Optional[Path] = None) -> int:
-    """Run a command streaming output; tee to log if provided."""
+    """Run a command streaming output to the terminal; write a filtered log.
+
+    The terminal sees everything (live progress included). The log file omits
+    rsync progress updates (which are pure noise once written to disk) and
+    appends a SUMMARY section at the end with elapsed time, file counts, and
+    any errors or warnings — so it's easy to see at a glance how the run went.
+    """
     eprint(" ".join([f"'{c}'" if " " in c else c for c in cmd]))
+    start = datetime.now()
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1,
                             text=True, encoding="utf-8", errors="replace")
     logf = None
+    issues: List[str] = []
+    files_total = files_xferred = bytes_xferred = None
     try:
         if log_path:
             log_path.parent.mkdir(parents=True, exist_ok=True)
             logf = log_path.open("w", encoding="utf-8", newline="")
+            logf.write(f"# {start.strftime('%Y-%m-%d %H:%M:%S')}\n")
+            logf.write(f"# cmd: {' '.join(cmd)}\n\n")
         for line in proc.stdout:
             print(line, end="")
-            if logf:
+            if logf and not _PROGRESS_RE.match(line):
                 logf.write(line)
-        return proc.wait()
+            if _ISSUE_RE.search(line):
+                issues.append(line.rstrip("\n"))
+            m = _STATS_FILES_RE.match(line)
+            if m: files_total = m.group(1)
+            m = _STATS_XFER_RE.match(line)
+            if m: files_xferred = m.group(1)
+            m = _STATS_BYTES_RE.match(line)
+            if m: bytes_xferred = m.group(1).strip()
+        rc = proc.wait()
+        elapsed = (datetime.now() - start).total_seconds()
+        if logf:
+            logf.write("\n" + "─" * 68 + "\n")
+            logf.write(f"SUMMARY  (rsync exit code: {rc})\n")
+            logf.write("─" * 68 + "\n")
+            logf.write(f"Duration:           {_format_duration(elapsed)}\n")
+            if files_total:   logf.write(f"Files in tree:      {files_total}\n")
+            if files_xferred: logf.write(f"Files transferred:  {files_xferred}\n")
+            if bytes_xferred: logf.write(f"Bytes transferred:  {bytes_xferred}\n")
+            logf.write("\nErrors / Warnings:\n")
+            if issues:
+                for line in issues:
+                    logf.write(f"  {line}\n")
+            else:
+                logf.write("  (none)\n")
+        return rc
     finally:
         if logf:
             logf.close()
@@ -146,9 +200,9 @@ class Config:
             # Choose sensible defaults based on rsync version if config omits flags
             major, _ = rsync_version_tuple(RSYNC_BIN)
             if major >= 3:
-                self.rsync_flags = ["-a", "-AX", "--partial", "--append-verify", "--human-readable", "--info=progress2", "--protect-args"]
+                self.rsync_flags = ["-a", "-AX", "--partial", "--append-verify", "--human-readable", "--info=progress2", "--stats", "--protect-args"]
             else:
-                self.rsync_flags = ["-a", "-E", "--extended-attributes", "--partial", "--append", "--human-readable", "--progress"]
+                self.rsync_flags = ["-a", "-E", "--extended-attributes", "--partial", "--append", "--human-readable", "--progress", "--stats"]
         else:
             # Use provided flags; if empty list, add minimal safe defaults for system rsync
             if len(raw_flags) == 0:
@@ -319,6 +373,14 @@ def main():
             ensure_mounted(cfg.ROOT, "ROOT")
             ensure_mounted(cfg.CLONE_ROOT, "CLONE_ROOT")
             print(f"\nFull clone: {cfg.ROOT}  →  {cfg.CLONE_ROOT}")
+            print("\nWhat a full clone does:")
+            print(f"  • rsync the ENTIRE contents of {cfg.ROOT} into {cfg.CLONE_ROOT}.")
+            print(f"  • All users' MEDIA_POOL and PROXY_POOL are mirrored — not just one user.")
+            print(f"  • Incremental: files already on {cfg.CLONE_ROOT.name} with matching size+mtime are skipped.")
+            print(f"  • System junk excluded: {', '.join(cfg.excludes) if cfg.excludes else '(none)'}.")
+            print(f"  • Files deleted from {cfg.ROOT.name} are NOT removed from {cfg.CLONE_ROOT.name} (clone grows-only).")
+            print(f"  • After the forward sync, you'll be asked whether to back-sync any MP4s present only on the clone.")
+            print(f"  • Expect this to be slow on first run (terabytes); subsequent runs only move deltas.")
             if not confirm("Proceed with full clone?", default_yes=False):
                 return
             with with_lock(cfg.CLONE_ROOT):

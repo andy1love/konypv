@@ -55,6 +55,7 @@
     "._*",
     ".Spotlight-V100",
     ".Trashes",
+    ".TemporaryItems",
     ".fseventsd"
   ],
 
