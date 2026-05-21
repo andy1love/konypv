@@ -28,3 +28,41 @@ def load_config(cfg_path=None) -> dict:
         cfg["scripts"].setdefault("import", str(root / "_scripts/_py/auto_import_media_to_res.py"))
 
     return cfg
+
+
+def resolve_dailies_roll(cfg: dict) -> Path:
+    """Decide which dailies roll to use.
+
+    Order of precedence:
+      1. DAILIES_ROLL env var (explicit override).
+      2. If any SECONDARY_DAILIES_ROLL entries are mounted, prompt the user
+         to pick one; blank input falls back to DEFAULT_DAILIES_ROLL.
+      3. DEFAULT_DAILIES_ROLL.
+    """
+    env_val = os.getenv("DAILIES_ROLL")
+    if env_val:
+        return Path(env_val)
+
+    default_val = cfg.get("DEFAULT_DAILIES_ROLL")
+    if not default_val:
+        raise SystemExit("ERROR: DEFAULT_DAILIES_ROLL not found in config.")
+    default_roll = Path(default_val)
+
+    secondary = cfg.get("SECONDARY_DAILIES_ROLL") or []
+    if isinstance(secondary, str):
+        secondary = [secondary]
+    mounted = [Path(p) for p in secondary if Path(p).exists()]
+    if not mounted:
+        return default_roll
+
+    print("\nMounted SECONDARY_DAILIES_ROLL(s) detected:")
+    for i, p in enumerate(mounted, 1):
+        print(f"  [{i}] {p}")
+    print(f"  [Enter] use DEFAULT_DAILIES_ROLL ({default_roll})")
+    while True:
+        choice = input("Select number, or press Enter for default: ").strip()
+        if choice == "":
+            return default_roll
+        if choice.isdigit() and 1 <= int(choice) <= len(mounted):
+            return mounted[int(choice) - 1]
+        print("Invalid choice. Try again.")

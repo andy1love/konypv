@@ -5,6 +5,10 @@
 
   "DEFAULT_DAILIES_ROLL": "/Volumes/Untitled/PRIVATE/M4ROOT/CLIP",
 
+  "SECONDARY_DAILIES_ROLL": [
+    "/Volumes/Drone/DCIM/100MEDIA"
+  ],
+
   "CLONE_ROOT": "/Volumes/PVCLONE",
 
   "resolve_api_paths": [

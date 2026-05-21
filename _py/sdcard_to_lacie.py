@@ -16,7 +16,10 @@ Env/config used (set by launcher or shell):
   CONFIG_PATH (optional, JSON config)
   NAME                  -> user name in ALL CAPS (e.g., ANDY)
   MEDIA_POOL_ROOT       -> e.g., /Volumes/LaCie/MEDIA_POOL
-  DAILIES_ROLL          -> e.g., /Volumes/Untitled/PRIVATE/M4ROOT/CLIP
+  DAILIES_ROLL          -> optional explicit override; if unset, the
+                           dailies roll is resolved from config:
+                             - prompts to pick a mounted SECONDARY_DAILIES_ROLL
+                             - falls back to DEFAULT_DAILIES_ROLL
 """
 
 import os
@@ -28,7 +31,7 @@ import datetime
 from pathlib import Path
 from typing import Dict, Tuple, List, Optional
 
-from config_loader import load_config
+from config_loader import load_config, resolve_dailies_roll
 
 def die(msg: str, code: int = 1):
     print(f"ERROR: {msg}", file=sys.stderr)
@@ -47,9 +50,7 @@ if not MEDIA_POOL_ROOT:
 
 MEDIA_POOL = MEDIA_POOL_ROOT / NAME
 
-DAILIES_ROLL = Path(os.getenv("DAILIES_ROLL") or CFG.get("DEFAULT_DAILIES_ROLL"))
-if not DAILIES_ROLL:
-    die("DEFAULT_DAILIES_ROLL not found in config.json or environment variables")
+DAILIES_ROLL = resolve_dailies_roll(CFG)
 
 # Get patterns from config with sensible defaults
 bin_pattern_str = CFG.get("bin_naming_pattern", r"^(?P<ymd>\d{8})_(?P<seq>\d{2})(?:_.*)?$")

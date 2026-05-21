@@ -125,9 +125,9 @@ def main():
     media_pool = media_pool_root / NAME
 
     print(f"\nHello {NAME} 👋")
-    print(f"MEDIA_POOL_ROOT: {media_pool_root}")
-    print(f"MEDIA_POOL:      {media_pool}")
-    print(f"DAILIES_ROLL:    {dailies_roll}")
+    print(f"MEDIA_POOL_ROOT:      {media_pool_root}")
+    print(f"MEDIA_POOL:           {media_pool}")
+    print(f"DEFAULT_DAILIES_ROLL: {dailies_roll}")
 
     # Ensure MEDIA_POOL_ROOT exists
     if not media_pool_root.exists():
@@ -139,7 +139,6 @@ def main():
     env["CONFIG_PATH"] = str(cfg_path)
     env["NAME"] = NAME
     env["MEDIA_POOL_ROOT"] = str(media_pool_root)
-    env["DAILIES_ROLL"] = str(dailies_roll)
     env["RESOLVE_PROJECT"] = NAME  # import script can LoadProject(NAME)
 
     # 5) Ask whether to run ingest first

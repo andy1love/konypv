@@ -19,7 +19,7 @@ import shutil
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from config_loader import load_config
+from config_loader import load_config, resolve_dailies_roll
 
 # ---------------- Helpers ----------------
 def die(msg: str, code: int = 1):
@@ -124,7 +124,7 @@ def main():
         die("Config missing 'DEFAULT_DAILIES_ROLL' key.")
 
     MEDIA_POOL_ROOT = Path(CFG["MEDIA_POOL_ROOT"])
-    DAILIES_ROLL = Path(CFG["DEFAULT_DAILIES_ROLL"])
+    DAILIES_ROLL = resolve_dailies_roll(CFG)
     keymap = CFG.get("user_keymap", {})
 
     if not keymap:
@@ -134,15 +134,15 @@ def main():
 
     print("=== SD Card Verify & Wipe ===")
     print(f"MEDIA_POOL_ROOT: {MEDIA_POOL_ROOT}")
-    print(f"DEFAULT_DAILIES_ROLL: {DAILIES_ROLL}")
+    print(f"DAILIES_ROLL:    {DAILIES_ROLL}")
     print(f"NAME (for _orphan): {NAME}")
 
     if not MEDIA_POOL_ROOT.exists():
         die(f"MEDIA_POOL_ROOT not found: {MEDIA_POOL_ROOT}")
     if not DAILIES_ROLL.exists():
-        die(f"DEFAULT_DAILIES_ROLL not found: {DAILIES_ROLL}")
+        die(f"DAILIES_ROLL not found: {DAILIES_ROLL}")
     if not DAILIES_ROLL.is_dir():
-        die(f"DEFAULT_DAILIES_ROLL is not a folder: {DAILIES_ROLL}")
+        die(f"DAILIES_ROLL is not a folder: {DAILIES_ROLL}")
 
     card_files = list_files_recursive(DAILIES_ROLL)
     if not card_files:
